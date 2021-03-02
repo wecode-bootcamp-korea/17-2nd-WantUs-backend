@@ -1,0 +1,14 @@
+asgiref @ file:///tmp/build/80754af9/asgiref_1605055780383/work
+bcrypt @ file:///opt/concourse/worker/volumes/live/7540a0c1-471d-4a61-5243-0bfec3601197/volume/bcrypt_1607022666156/work
+certifi==2020.12.5
+cffi @ file:///opt/concourse/worker/volumes/live/a70943eb-ad97-40c6-78c9-98764c1bee07/volume/cffi_1613246936716/work
+cryptography @ file:///opt/concourse/worker/volumes/live/1618be1e-0373-4fcd-5035-d260ce0eef37/volume/cryptography_1608674087226/work
+Django @ file:///tmp/build/80754af9/django_1613762073373/work
+idna @ file:///tmp/build/80754af9/idna_1609784788857/work
+mysqlclient @ file:///opt/concourse/worker/volumes/live/3e2c08bc-c6d4-44b9-6985-8c1059f99ec2/volume/mysqlclient_1609786255460/work
+psycopg2 @ file:///opt/concourse/worker/volumes/live/7541fe58-2a45-4073-5d69-313e733fc729/volume/psycopg2_1612298592535/work
+pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
+PyJWT @ file:///opt/concourse/worker/volumes/live/393a88a9-f905-495d-66f4-bce1ce9e9c0f/volume/pyjwt_1610911327727/work
+pytz @ file:///tmp/build/80754af9/pytz_1612215392582/work
+six @ file:///opt/concourse/worker/volumes/live/34b5b2b5-c9cb-44fb-4b8e-8a9a881bfa35/volume/six_1605205329242/work
+sqlparse @ file:///tmp/build/80754af9/sqlparse_1602184451250/work
