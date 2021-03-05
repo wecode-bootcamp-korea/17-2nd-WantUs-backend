@@ -1,16 +1,16 @@
 from django.db import models
 
 class Posting(models.Model):
-    title        = models.CharField(max_length=50)
-    job_category = models.ForeignKey('JobCategory', on_delete=models.CASCADE)
-    company      = models.ForeignKey('Company', on_delete=models.CASCADE)
-    reward       = models.DecimalField(max_digits=10, decimal_places=2)
-    description  = models.TextField()
-    posting_mark = models.ManyToManyField('user.User', through='BookMark', related_name='user_mark_posting')
-    posting_like = models.ManyToManyField('user.User', through='Like', related_name='user_like_posting')
-    end_date     = models.DateTimeField()
-    update_at    = models.DateTimeField(auto_now=True)
-    create_at    = models.DateTimeField(auto_now_add=True)
+    title          = models.CharField(max_length=50)
+    job_category   = models.ForeignKey('JobCategory', on_delete=models.CASCADE)
+    company_detail = models.ForeignKey('CompanyDetail', on_delete=models.CASCADE)
+    reward         = models.DecimalField(max_digits=10, decimal_places=2)
+    description    = models.TextField()
+    posting_mark   = models.ManyToManyField('user.User', through='BookMark', related_name='user_mark_posting')
+    posting_like   = models.ManyToManyField('user.User', through='Like', related_name='user_like_posting')
+    end_date       = models.DateTimeField()
+    update_at      = models.DateTimeField(auto_now=True)
+    create_at      = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'postings'
@@ -29,10 +29,10 @@ class Occupation(models.Model):
         db_table = 'occupations'
 
 class Company(models.Model):
-    name       = models.CharField(max_length=50)
-    icon       = models.URLField(max_length=2000)
-    desciption = models.CharField(max_length=2000)
-    tag        = models.ManyToManyField('TagDetail', through='CompanyTag')
+    name        = models.CharField(max_length=50)
+    icon        = models.URLField(max_length=2000)
+    description = models.TextField()
+    tag         = models.ManyToManyField('TagDetail', through='CompanyTag')
 
     class Meta:
         db_table = 'companies'
@@ -44,7 +44,7 @@ class CompanyImage(models.Model):
     class Meta:
         db_table = 'company_images'
 
-class Location(models.Model):
+class CompanyDetail(models.Model):
     company   = models.ForeignKey('Company', on_delete=models.CASCADE)
     name      = models.CharField(max_length=50)
     address   = models.CharField(max_length=300)
@@ -54,7 +54,7 @@ class Location(models.Model):
     county    = models.ForeignKey('County', on_delete=models.CASCADE)
 
     class Meta:
-        db_table = 'locations'
+        db_table = 'company_details'
 
 class State(models.Model):
     name = models.CharField(max_length=50)
