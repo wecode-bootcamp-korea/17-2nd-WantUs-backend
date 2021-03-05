@@ -4,8 +4,22 @@ import math
 from django.core.paginator  import Paginator
 from django.http            import JsonResponse
 from django.views           import View
-from django.db.models       import Count
+from django.db.models       import (
+    Count,
+    Prefetch,
+    Q
+)
 
+from posting.models import (
+    Posting, 
+    CompanyDetail, 
+    CompanyTag,
+    County,
+    State,
+    Tag,
+    TagDetail,
+    JobCategory
+)
 from user.models            import User
 from utils                  import login_decorator, non_user_accept_decorator
 from posting.models         import (
@@ -17,7 +31,10 @@ from posting.models         import (
         State,
         County,
         Like,
-        BookMark
+        BookMark,
+        CompanyTag,
+        Tag,
+        TagDetail
 )
 
 class PostingDetailView(View):
@@ -174,3 +191,88 @@ class PostingBookmarkView(View):
         
         except Posting.DoesNotExist:
             return JsonResponse({'message': 'BAD_REQUEST'}, status=404)
+
+class PostingListView(View):
+    def get(self, request):
+        q = Q()
+
+        category        = request.GET.get('category', '전체')
+        sorting         = request.GET.get('sorting', 'new')
+        tags            = request.GET.getlist('tag', None)
+        locations       = request.GET.getlist('location', None)
+
+        if category != '전체':
+            q.add(Q(job_category__name = category), q.AND)
+
+        query = Posting.objects.filter(q)
+
+        if locations:
+            query = Posting.objects.filter(company_detail__county__name__in=locations)
+
+        if tags:
+            for tag in tags:
+                query = query.filter(company_detail__company__tag__name=tag)
+            
+        SORTING_DICT = {
+            'new'     : '-create_at',
+            'popular' : '-like_num',
+            'reward'  : '-reward'
+        }
+
+        page      = request.GET.get('page', 1)
+        per_page  = request.GET.get('per_page', 30)
+
+        postings = query.select_related\
+                    ('company_detail', 'company_detail__company', 'company_detail__state', 'company_detail__county')\
+                    .prefetch_related('company_detail__company__companyimage_set', 'company_detail__company__companytag_set')\
+                    .annotate(like_num=Count('posting_like'))\
+                    .order_by(SORTING_DICT[sorting])
+
+        paginator = Paginator(postings, per_page)
+
+        if paginator.num_pages < int(page):
+            return JsonResponse({'message':'NONE_PAGE'}, status=204)
+        
+        postings  = paginator.get_page(page)
+
+        states      = State.objects.all()
+        counties    = County.objects.all()
+        filter_tags = Tag.objects.all()
+
+        data = {
+            'postings' : [{
+                'id'      : posting.id,
+                'like'    : posting.like_set.filter(posting=posting).count(),
+                'title'   : posting.title,
+                'company' : posting.company_detail.company.name,
+                'state'   : posting.company_detail.state.name,
+                'county'  : posting.company_detail.county.name,
+                'reward'  : posting.reward,
+                'image'   : [company_image.image_url for company_image in posting.company_detail.company.companyimage_set.all()]
+            } for posting in postings],
+            'locations' : {
+                'state' : [{
+                    'id'   : state.id,
+                    'name' : state.name
+                } for state in states],
+                'county' : [{
+                    'id'   : county.id,
+                    'name' : county.name
+                } for county in counties],
+            },
+            'tags' : [{
+                    'id'   : tag.id,
+                    'name' : tag.name,
+                    'tagDetails' : [{
+                        'id'   : tag_detail.id,
+                        'name' : tag_detail.name
+                    } for tag_detail in tag.tagdetail_set.all()]
+                } for tag in filter_tags],
+            'categories' : [{
+                'id' : category.id,
+                'name' : category.name
+            } for category in JobCategory.objects.all()]
+        }
+
+        return JsonResponse({'message':'SUCCESS', 'data':data}, status=200)
+        
