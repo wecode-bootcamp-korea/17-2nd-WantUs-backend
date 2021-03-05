@@ -22,6 +22,7 @@ from posting.models import (
         Tag,
         CompanyTag
     )
+
 client = Client()
 
 class PostingDetailViewTest(TestCase):
@@ -1227,3 +1228,452 @@ class LikeViewTest(TestCase):
         response = client.post('/posting/like/100', **{'HTTP_Authorization': token})
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json(), {'message': 'BAD_REQUEST'})
+class PostingListTest(TestCase):
+
+    maxDiff = None
+    
+    def setUp(self):
+
+        tag1 = Tag.objects.create(
+            id   = 1,
+            name = '연봉수준'
+        )
+        tag2 = Tag.objects.create(
+            id   = 2,
+            name = '인원수'
+        )
+
+        tag_detail1 = TagDetail.objects.create(
+            id   = 1,
+            name = '#연봉업계평균이상',
+            tag  = tag1
+        )
+        tag_detail2 = TagDetail.objects.create(
+            id   = 2,
+            name = '#50명이하',
+            tag  = tag2
+        )
+
+        company1 = Company.objects.create(
+            name        = '멋쟁이은우처럼',
+            icon        = '123',
+            description = '~.~'
+        )
+        company2 = Company.objects.create(
+            name        = '이백문방구',
+            icon        = '123',
+            description = '~.~'
+        )
+
+        state1 = State.objects.create(
+            id   = 1,
+            name = '서울'
+        )
+
+        county1 = County.objects.create(
+            id   = 1,
+            name = '종로'
+        )
+        county2 = County.objects.create(
+            id   = 2,
+            name = '영등포'
+        )
+
+        company_detail1 = CompanyDetail.objects.create(
+            company   = company1,
+            name      = '본사',
+            address   = '서울시',
+            latitude  = 12.34,
+            longitude = 12.34,
+            state     = state1,
+            county    = county1
+        )
+        company_detail2 = CompanyDetail.objects.create(
+            company   = company2,
+            name      = '본사',
+            address   = '서울시',
+            latitude  = 12.34,
+            longitude = 12.34,
+            state     = state1,
+            county    = county2
+        )
+
+        company_tag1 = CompanyTag.objects.create(
+            company    = company1,
+            tag_detail = tag_detail1
+        )
+        company_tag2 = CompanyTag.objects.create(
+            company    = company1,
+            tag_detail = tag_detail2
+        )
+        company_tag3 = CompanyTag.objects.create(
+            company    = company2,
+            tag_detail = tag_detail1
+        )
+
+        occupation1 = Occupation.objects.create(
+            name = '개발'
+        )
+        
+        job_category1 = JobCategory.objects.create(
+            id         = 1,
+            name       = '파이썬 개발자',
+            occupation = occupation1
+        )
+        job_category2 = JobCategory.objects.create(
+            id         = 2,
+            name       = '장고 개발자',
+            occupation = occupation1
+        )
+
+        work_experience1 = WorkExperience.objects.create(
+            name = '신입'
+        )
+
+        Posting.objects.create(
+            id              = 1,
+            title           = '모집합니다1',
+            job_category    = job_category1,
+            company_detail  = company_detail1,
+            reward          = 1,
+            description     = 'asd',
+            end_date        = '2021-03-05',
+            work_experience = work_experience1
+        )
+        Posting.objects.create(
+            id              = 2,
+            title           = '모집합니다2',
+            job_category    = job_category1,
+            company_detail  = company_detail1,
+            reward          = 2,
+            description     = 'asd',
+            end_date        = '2021-03-05',
+            work_experience = work_experience1
+        )
+        Posting.objects.create(
+            id              = 3,
+            title           = '모집합니다3',
+            job_category    = job_category2,
+            company_detail  = company_detail2,
+            reward          = 3,
+            description     = 'asd',
+            end_date        = '2021-03-05',
+            work_experience = work_experience1
+        )
+        Posting.objects.create(
+            id              = 4,
+            title           = '모집합니다4',
+            job_category    = job_category1,
+            company_detail  = company_detail2,
+            reward          = 4,
+            description     = 'asd',
+            end_date        = '2021-03-05',
+            work_experience = work_experience1
+        )
+
+    def tearDown(self):
+        Tag.objects.all().delete
+        TagDetail.objects.all().delete
+        Company.objects.all().delete
+        State.objects.all().delete
+        County.objects.all().delete
+        CompanyDetail.objects.all().delete
+        CompanyTag.objects.all().delete
+        JobCategory.objects.all().delete
+        WorkExperience.objects.all().delete
+        Posting.objects.all().delete
+
+    def test_posting_list_get_category_pass(self):
+        response = client.get('/posting/list?category=파이썬 개발자&page=1&per_page=8')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'message': 'SUCCESS', 
+            'data': {
+                'postings': [
+                    {
+                        'id': 4, 
+                        'like': 0, 
+                        'title': '모집합니다4', 
+                        'company': '이백문방구', 
+                        'state': '서울', 
+                        'county': '영등포', 
+                        'reward': '4.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 2, 
+                        'like': 0, 
+                        'title': '모집합니다2', 
+                        'company': '멋쟁이은우처럼', 
+                        'state': '서울', 
+                        'county': '종로', 
+                        'reward': '2.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 1, 
+                        'like': 0, 
+                        'title': '모집합니다1', 
+                        'company': '멋쟁이은우처럼', 
+                        'state': '서울', 
+                        'county': '종로', 
+                        'reward': '1.00', 
+                        'img': []
+                    }
+                ], 
+                'locations': {
+                    'state': [
+                        {
+                            'id': 1, 
+                            'name': '서울'
+                        }
+                    ], 
+                    'county': [
+                        {
+                            'id': 1, 
+                            'name': '종로'
+                        }, 
+                        {
+                            'id': 2, 
+                            'name': '영등포'
+                        }
+                    ]
+                }, 
+                'tags': [
+                    {
+                        'id': 1, 
+                        'name': '연봉수준', 
+                        'tagDetails': [
+                            {
+                                'id': 1, 
+                                'name': '#연봉업계평균이상'
+                            }
+                        ]
+                    }, 
+                    {
+                        'id': 2, 
+                        'name': '인원수', 
+                        'tagDetails': [
+                            {
+                                'id': 2, 
+                                'name': '#50명이하'
+                            }
+                        ]
+                    }
+                ],
+                'categories': [
+                    {
+                        'id': 1, 
+                        'name': '파이썬 개발자'
+                    }, 
+                    {
+                        'id': 2, 
+                        'name': '장고 개발자'
+                    }
+                ]
+            }
+        })
+
+    def test_posting_list_get_multiple_tag_pass(self):
+        response = client.get('/posting/list?page=1&per_page=8&tag=%23연봉업계평균이상&tag=%2350명이하')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(),{
+            'message': 'SUCCESS', 
+            'data': {
+                'postings': [
+                    {
+                        'id': 4, 
+                        'like': 0, 
+                        'title': '모집합니다4', 
+                        'company': '이백문방구', 
+                        'state': '서울', 
+                        'county': '영등포', 
+                        'reward': '4.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 3, 
+                        'like': 0, 
+                        'title': '모집합니다3', 
+                        'company': '이백문방구', 
+                        'state': '서울', 
+                        'county': '영등포', 
+                        'reward': '3.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 2, 
+                        'like': 0, 
+                        'title': '모집합니다2', 
+                        'company': '멋쟁이은우처럼', 
+                        'state': '서울', 
+                        'county': '종로', 
+                        'reward': '2.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 1, 
+                        'like': 0, 
+                        'title': '모집합니다1', 
+                        'company': '멋쟁이은우처럼', 
+                        'state': '서울', 
+                        'county': '종로', 
+                        'reward': '1.00', 
+                        'img': []
+                    }
+                ], 
+                'locations': {
+                    'state': [
+                        {
+                            'id': 1, 
+                            'name': '서울'
+                        }
+                    ], 
+                    'county': [
+                        {
+                            'id': 1, 
+                            'name': '종로'
+                        }, 
+                        {
+                            'id': 2, 
+                            'name': '영등포'
+                        }
+                    ]
+                }, 
+                'tags': [
+                    {
+                        'id': 1, 
+                        'name': '연봉수준', 
+                        'tagDetails': [
+                            {
+                                'id': 1, 
+                                'name': '#연봉업계평균이상'
+                            }
+                        ]
+                    }, 
+                    {
+                        'id': 2, 
+                        'name': '인원수', 
+                        'tagDetails': [
+                            {
+                                'id': 2, 
+                                'name': '#50명이하'
+                            }
+                        ]
+                    }
+                ], 
+                'categories': [
+                    {
+                        'id': 1, 
+                        'name': '파이썬 개발자'
+                    }, 
+                    {
+                        'id': 2, 
+                        'name': '장고 개발자'
+                    }
+                ]
+            }
+        })
+
+    def test_posting_list_get_all_query_pass(self):
+        response = client.get('/posting/list?category=파이썬 개발자&page=1&per_page=8&tag=%23연봉업계평균이상&tag=%2350명이하&location=종로&location=영등포&sorting=new')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'message': 'SUCCESS', 
+            'data': {
+                'postings': [
+                    {
+                        'id': 4, 
+                        'like': 0, 
+                        'title': '모집합니다4', 
+                        'company': '이백문방구', 
+                        'state': '서울', 
+                        'county': '영등포', 
+                        'reward': '4.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 2, 
+                        'like': 0, 
+                        'title': '모집합니다2', 
+                        'company': '멋쟁이은우처럼', 
+                        'state': '서울', 
+                        'county': '종로', 
+                        'reward': '2.00', 
+                        'img': []
+                    }, 
+                    {
+                        'id': 1, 
+                        'like': 0, 
+                        'title': '모집합니다1', 
+                        'company': '멋쟁이은우처럼', 
+                        'state': '서울', 
+                        'county': '종로', 
+                        'reward': '1.00', 
+                        'img': []
+                    }
+                ], 
+                'locations': {
+                    'state': [
+                        {
+                            'id': 1, 
+                            'name': '서울'
+                        }
+                    ], 
+                    'county': [
+                        {
+                            'id': 1, 
+                            'name': '종로'
+                        }, 
+                        {
+                            'id': 2, 
+                            'name': '영등포'
+                        }
+                    ]
+                }, 
+                'tags': [
+                    {
+                        'id': 1, 
+                        'name': '연봉수준', 
+                        'tagDetails': [
+                            {
+                                'id': 1, 
+                                'name': '#연봉업계평균이상'
+                            }
+                        ]
+                    }, 
+                    {
+                        'id': 2, 
+                        'name': '인원수', 
+                        'tagDetails': [
+                            {
+                                'id': 2, 'name': '#50명이하'
+                            }
+                        ]
+                    }
+                ], 
+                'categories': [
+                    {
+                        'id': 1, 
+                        'name': '파이썬 개발자'
+                    }, 
+                    {
+                        'id': 2, 
+                        'name': '장고 개발자'
+                    }
+                ]
+            }
+        })
+    
+    def test_posting_list_get_will_faild(self):
+        response = client.get('/posting/list?category=파이썬 개발자&page=4&per_page=8')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "message" : "NONE_PAGE"
+        })
+    
+
