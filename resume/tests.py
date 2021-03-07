@@ -1,4 +1,5 @@
 import jwt
+import json
 import boto3
 import mock
 import json
@@ -18,6 +19,8 @@ from resume.models  import (
         )
 from my_settings       import ALGORITHM, SECRET_KEY, S3KEY, S3SECRETKEY
 from user.models       import User
+
+client   = Client()
 
 class ResumeFileUploadViewTest(TestCase):
     def setUp(self):
@@ -69,10 +72,8 @@ class ResumeFileUploadViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {'message': 'FILE_DOES_NOT_EXIST'})
 
-client = Client()
 
 class ResumePartialTest(TestCase):
-    maxDiff = None
     def setUp(self):
         User.objects.create(
                         id           = 1, 
@@ -89,7 +90,7 @@ class ResumePartialTest(TestCase):
         ResumeStatus.objects.create(
                                 id          = 1, 
                                 status_code = '작성중'
-                                )
+                        )
         Resume.objects.create(
                             id        = 1,
                             user_id   = 1, 
@@ -183,14 +184,24 @@ class ResumePartialTest(TestCase):
     
     def test_resume_partial_get_invalide_user(self):
         user     = User.objects.get(id=1)
-        token    = jwt.encode({'id':user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        token    = jwt.encode({'id': 2}, SECRET_KEY, algorithm=ALGORITHM)
         headers  = {'HTTP_AUTHORIZATION' : token}
         resume   = Resume.objects.get(title='test이력서')
         response = client.get('/resume/2', content_type='application/json', **headers)
 
-        self.assertEqual(response.json()['message'], 'INVALID_USER')
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'INVALID_USER')
         
+    def test_resume_partial_get_invalide_user(self):
+        user     = User.objects.get(id=1)
+        token    = jwt.encode({'id': 10}, SECRET_KEY, algorithm=ALGORITHM)
+        headers  = {'HTTP_AUTHORIZATION' : token}
+        resume   = Resume.objects.get(title='test이력서')
+        response = client.get('/resume/2', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'DOES_NOT_EXIST')
+    
     def test_resume_partial_get_invalide_resume(self):
         user     = User.objects.get(id=1)
         token    = jwt.encode({'id':user.id}, SECRET_KEY, algorithm=ALGORITHM)
@@ -198,5 +209,127 @@ class ResumePartialTest(TestCase):
         resume   = Resume.objects.get(title='test이력서')
         response = client.get('/resume/100', content_type='application/json', **headers)
 
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'INVALID_RESUME')
+
+    def test_resume_delete_success(self):
+        user        = User.objects.get(id=1)
+        token       = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        headers     = {'HTTP_AUTHORIZATION' : token}
+        response    = client.delete('/resume/1', content_type='application/json', **headers)
+
+        self.assertEqual(response.json()['message'], 'SUCCESS')
+        self.assertEqual(response.status_code, 200)
+
+    def test_resume_delete_invalid_user(self):
+        user        = User.objects.get(id=2)
+        token       = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        headers     = {'HTTP_AUTHORIZATION' : token}
+        response    = client.delete('/resume/1', content_type='application/json', **headers)
+
+        self.assertEqual(response.json()['message'], 'INVALID_USER')
+        self.assertEqual(response.status_code, 400)
+
+    def test_resume_delete_invalid_resume(self):
+        user        = User.objects.get(id=2)
+        token       = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        headers     = {'HTTP_AUTHORIZATION' : token}
+        response    = client.delete('/resume/10', content_type='application/json', **headers)
+
         self.assertEqual(response.json()['message'], 'INVALID_RESUME')
         self.assertEqual(response.status_code, 400)
+
+class ResumeTest(TestCase):
+    maxDiff=None
+    def setUp(self):
+        User.objects.create(
+                            id      = 1,
+                            name    = '보라돌이',
+                            email   = 'purple@g.com'
+                            )
+        User.objects.create(
+                            id      = 2,
+                            name    = '뚜비',
+                            email   = 'green@g.com'
+                            )
+        
+        ResumeStatus.objects.create(
+                                    id          = 1,
+                                    status_code = '작성중'
+                                    )
+        ResumeStatus.objects.create(
+                                    id          = 2,
+                                    status_code = '작성완료'
+                                    )
+        ResumeStatus.objects.create(
+                                    id          = 3,
+                                    status_code = '첨부파일'
+                                    )
+
+
+        Resume.objects.create(
+                            id          = 1,
+                            user_id     = 1,
+                            title       = '보라돌이의 이력서1',
+                            )
+        Resume.objects.create(
+                            id          = 3,
+                            user_id     = 2,
+                            title       = '뚜비의 이력서1',
+                            )
+        ResumeFile.objects.create(
+                            id          = 2,
+                            user_id     = 1,
+                            title       = '보라돌이의 업로드 이력서1',
+                            file_url    = 'file의 url',
+                            uuidcode     = 'uuu'
+                            )
+        Resume.objects.create(
+                            id          = 4,
+                            user_id     = 1,
+                            title       = '보라돌이의 이력서2',
+                            )
+    def tearDown(self):
+        User.objects.all().delete()
+        Resume.objects.all().delete()
+        ResumeFile.objects.all().delete()
+
+    def test_resume_get_success(self):
+        user        = User.objects.get(id=1)
+        token       = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        headers     = {'HTTP_AUTHORIZATION' : token}
+        response    = client.get('/resume', content_type='application/json', **headers)
+
+        resumes     = Resume.objects.filter(user=user)
+        self.assertEqual(response.json()['result'], [
+            {
+                'id'        : 1, 
+                'name'      : '보라돌이의 이력서1', 
+                'date'      : '2021-03-11', 
+                'status'    : '작성중', 
+                'matchUp'   : False
+                }, 
+            {
+                'id'        : 4, 
+                'name'      : '보라돌이의 이력서2', 
+                'date'      : '2021-03-11', 
+                'status'    : '작성중', 
+                'matchUp'   : False
+                }, 
+            {
+                'id'        : 2, 
+                'name'      : '보라돌이의 업로드 이력서1', 
+                'date'      : '2021-03-11', 
+                'status'    : '첨부파일', 
+                'matchUp'   : False
+                }])
+        self.assertEqual(response.status_code, 200)
+
+    def test_resume_post_success(self):
+        user        = User.objects.get(id=1)
+        token       = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        headers     = {'HTTP_AUTHORIZATION' : token}
+        response    = client.post('/resume', content_type='application/json', **headers)
+        
+        self.assertEqual(response.json()['result'], 5)
+        self.assertEqual(response.status_code, 201)

@@ -1,18 +1,21 @@
+import json
 import uuid
 import boto3
 
-from django.http   import JsonResponse, HttpResponse
-from django.views  import View
+from django.http        import JsonResponse
+from django.views       import View
+from django.db.models   import Count, Prefetch
 
-from my_settings   import S3KEY, S3SECRETKEY
+from my_settings    import S3KEY, S3SECRETKEY
+from user.models    import User
 from resume.models  import (
         ResumeFile,
         Resume,
+        ResumeStatus,
         Career,
         Language,
         Education
         )
-from user.models   import User
 from utils         import login_decorator
 
 class ResumeFilewUploadView(View):
@@ -48,8 +51,8 @@ class ResumeFilewUploadView(View):
         return JsonResponse({'message': 'SUCCESS', 'data': file_url}, status=200)
 
 class ResumePartialView(View):
-   @login_decorator
-   def get(self, request, resume_id):
+    @login_decorator
+    def get(self, request, resume_id):
         try:
             user                = request.user
             resume              = Resume.objects.get(id=resume_id)
@@ -88,3 +91,42 @@ class ResumePartialView(View):
         
         except Resume.DoesNotExist:
             return JsonResponse({'message' : 'INVALID_RESUME'}, status=400)
+
+    @login_decorator
+    def delete(self, request, resume_id):
+        try:
+            user    = request.user
+            resume  = Resume.objects.get(id=resume_id)
+            if user.id != resume.user.id:
+                return JsonResponse({'message' : 'INVALID_USER'}, status=400)
+
+            resume.delete()
+            return JsonResponse({'message' : 'SUCCESS'}, status=200)
+
+        except Resume.DoesNotExist:
+            return JsonResponse({'message' : 'INVALID_RESUME'}, status=400)
+
+class ResumeView(View):
+    @login_decorator
+    def get(self, request):
+        user    = request.user
+        resumes = Resume.objects.filter(user=user).values('id', 'title', 'update_at', 'complete_status', 'is_default')
+        resume_files = ResumeFile.objects.filter(user=user).values('id', 'title', 'update_at', 'complete_status', 'is_default')
+        resume_list = [{
+            "id"     : resume['id'],
+            "name"   : resume['title'],
+            "date"   : resume['update_at'],
+            "status" : ResumeStatus.objects.get(id=resume['complete_status']).status_code,
+            "matchUp" : resume['is_default']
+            } for resume in resumes.union(resume_files).order_by('-update_at')]
+
+        return JsonResponse({'message' : 'SUCCESS', 'result' : resume_list}, status=200)
+
+    @login_decorator
+    def post(self, request):
+        user   = request.user
+        resume = Resume.objects.create(
+                user    = user,
+                title   = f'{user.name}'+str(Resume.objects.filter(user=user).count()+1),
+                )
+        return JsonResponse({'message' : 'SUCCESS', 'result' : resume.id}, status=201)
