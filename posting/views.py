@@ -1,12 +1,24 @@
 import json
 import math
 
-from django.http           import JsonResponse, HttpResponse
-from django.views          import View
-from django.core.paginator import Paginator
+from django.core.paginator  import Paginator
+from django.http            import JsonResponse
+from django.views           import View
+from django.db.models       import Count
 
-from posting.models        import Posting, Like, BookMark
-from utils                 import non_user_accept_decorator
+from user.models    import User
+from utils          import login_decorator, non_user_accept_decorator
+from posting.models import (
+        Posting,
+        Occupation,
+        Company,
+        CompanyImage,
+        CompanyDetail,
+        State,
+        County,
+        Like,
+        BookMark
+)
 
 class PostingDetailView(View):
     @non_user_accept_decorator
@@ -48,3 +60,50 @@ class PostingDetailView(View):
             
         except Posting.DoesNotExist:
             return JsonResponse({"message": "BAD_REQUEST"}, status=404) 
+
+LIST_LIMIT_NUMBER = 4
+
+class MainView(View):
+    @login_decorator
+    def get(self, request):
+        set_postings = Posting.objects.annotate(like_num=Count("like")).\
+                    select_related('company_detail', 
+                            'company_detail__state', 
+                            'company_detail__county', 
+                            'company_detail__company', 
+                            'job_category', 
+                            'job_category__occupation').all()
+
+        postings = set_postings.order_by('-like_num')[:LIST_LIMIT_NUMBER]
+
+        like_posting_list = [{
+            "postingId" : posting.id,
+            "imageUrl"  : posting.company_detail.company.companyimage_set.first().image_url if posting.company_detail.company.companyimage_set.exists() else None,
+            "job"       : posting.title,
+            "name"      : posting.company_detail.company.name,
+            "city"      : posting.company_detail.state.name,
+            "state"     : posting.company_detail.county.name,
+            "price"     : int(posting.reward),
+            "likeNum"   : posting.like_set.filter(posting=posting).count()
+            } for posting in postings]
+
+        postings = set_postings.order_by('-create_at')[:LIST_LIMIT_NUMBER]
+
+        new_company_list = [{
+            "postingId" : posting.id,
+            "imageUrl"  : posting.company_detail.company.companyimage_set.first().image_url if posting.company_detail.company.companyimage_set.exists() else None,
+            "name"      : posting.company_detail.company.name,
+            "job"       : posting.job_category.occupation.name,
+            }for posting in postings]
+
+        new_posting_list = [{
+            "imageUrl"  : posting.company_detail.company.companyimage_set.first().image_url if posting.company_detail.company.companyimage_set.exists() else None,
+            "postingId" : posting.id,
+            "job"       : posting.title,
+            "name"      : posting.company_detail.company.name,
+            "city"      : posting.company_detail.state.name,
+            "state"     : posting.company_detail.county.name,
+            "price"     : int(posting.reward),
+            } for posting in postings]
+
+        return JsonResponse({"likePosting" : like_posting_list, "new" : new_company_list, "thisWeek" : new_posting_list}, status=200)

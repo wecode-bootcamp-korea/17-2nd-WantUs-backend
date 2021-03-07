@@ -1,14 +1,28 @@
-import unittest
 import jwt
+import bcrypt
 
-from django.test import TestCase, Client
+from django.test        import TestCase, Client
+from django.db.models   import Count
 
-from user.models import User, WorkExperience
-from posting.models import (BookMark, Posting, JobCategory, Occupation,
-                            Company, CompanyDetail, CompanyImage,
-                            State, County, Like,
-                            Tag, TagDetail, CompanyTag)
-from my_settings  import SECRET_KEY, ALGORITHM
+from unittest.mock  import patch, MagicMock
+from my_settings    import SECRET_KEY, ALGORITHM
+from user.models    import User, WorkExperience
+from posting.models import (
+        Posting,
+        Occupation,
+        Company,
+        CompanyImage,
+        CompanyDetail,
+        State,
+        County,
+        Like,
+        JobCategory,
+        BookMark,
+        TagDetail,
+        Tag,
+        CompanyTag
+    )
+client = Client()
 
 class PostingDetailViewTest(TestCase):
     maxDiff = None
@@ -248,3 +262,359 @@ class PostingDetailViewTest(TestCase):
         response = client.get('/posting/100')
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json(), {'message': 'BAD_REQUEST'})
+
+class MainViewTest(TestCase):
+    def setUp(self):
+        User.objects.create(
+                            id      = 1,
+                            name    = '보라돌이',
+                            email   = 'purple@g.com'
+                            )
+        User.objects.create(
+                            id      = 2,
+                            name    = '뚜비',
+                            email   = 'green@g.com'
+                            )
+        User.objects.create(
+                            id      = 3,
+                            name    = '나나',
+                            email   = 'yellow@g.com'
+                            )
+        User.objects.create(
+                            id      = 4,
+                            name    = '뽀',
+                            email   = 'red@g.com')
+
+        state = State.objects.create(name = '서울')
+        
+        c1 = County.objects.create(name = '강남구')
+        c2 = County.objects.create(name = '강동구')
+        c3 = County.objects.create(name = '강북구')
+        
+        com1 = Company.objects.create(
+                                    name        = '윜코드',
+                                    icon        ='윜코드위고두',
+                                    description = '함께해서윜코드'
+                                    )
+        com2 = Company.objects.create(
+                                    name        = '불리자두', 
+                                    icon        = '대충소용돌이', 
+                                    description = '망겜아망하지마'
+                                    )
+        com3 = Company.objects.create(
+                                    name        = '채현테크', 
+                                    icon        = '대충엄청멋진아이콘', 
+                                    description = '복지는없어요죄송해요'
+                                    )
+        com_img1 = CompanyImage.objects.create(
+                                            id          = 1,
+                                            company     = com3,
+                                            image_url   = 'http://image'
+                                            )
+        com_img2 = CompanyImage.objects.create(
+                                            id          = 2,
+                                            company     = com3,
+                                            image_url   = 'http://image2'
+                                            )
+        com_de1 = CompanyDetail.objects.create(
+                                            id          = 1, 
+                                            company     = com1, 
+                                            name        = '선릉2호점',
+                                            address     = '테헤란로',
+                                            latitude    = 123.123, 
+                                            longitude   = 321.321, 
+                                            state       = state, 
+                                            county      = c1
+                                            )
+        com_de2 = CompanyDetail.objects.create(
+                                            id          = 2, 
+                                            company     = com2, 
+                                            name        = '우리집1호점', 
+                                            address     = '우리집주소', 
+                                            latitude    = 333.333, 
+                                            longitude   = 222.222, 
+                                            state       = state, 
+                                            county      = c2
+                                            )
+        com_de3 = CompanyDetail.objects.create(
+                                            id          = 3, 
+                                            company     = com3, 
+                                            name        = '거실1호점', 
+                                            address     = '현관부터거실까지', 
+                                            latitude    = 444.444, 
+                                            longitude   = 555.555, 
+                                            state       = state, 
+                                            county      = c3
+                                            )
+
+        occupation = Occupation.objects.create(name = '개발자')
+
+        job1 = JobCategory.objects.create(
+                                        id          = 1, 
+                                        name        = '웹개발자', 
+                                        occupation  = occupation
+                                        )
+        job2 = JobCategory.objects.create(
+                                        id          = 2, 
+                                        name        = '앱개발자', 
+                                        occupation  = occupation
+                                        )
+        job3 = JobCategory.objects.create(
+                                        id          = 3, 
+                                        name        = '개애발자', 
+                                        occupation  = occupation
+                                        )
+
+        work1 = WorkExperience.objects.create(
+                                            id      = 1, 
+                                            name    = '신입'
+                                            )
+        work2 = WorkExperience.objects.create(
+                                            id      = 2, 
+                                            name    = '1년차'
+                                            )
+        work3 = WorkExperience.objects.create(
+                                            id      = 3, 
+                                            name    = '2년차'
+                                            )
+
+
+        p1 = Posting.objects.create(
+                                id              = 1, 
+                                title           = '개발자구해요11', 
+                                job_category    = job1, 
+                                company_detail  = com_de1, 
+                                reward          = 10, 
+                                description     = '오면잘해줄께', 
+                                create_at       = '2020-10-10', 
+                                end_date        = '2021-04-03', 
+                                work_experience = work1
+                                )
+        
+        p2 = Posting.objects.create(
+                                id              = 2, 
+                                title           = '개발자구해요22', 
+                                job_category    = job2, 
+                                company_detail  = com_de1, 
+                                reward          = 20, 
+                                description     = '대충구한다는말', 
+                                create_at       = '2020-05-05', 
+                                end_date        = '2021-04-03', 
+                                work_experience = work3
+                                )
+        
+        p3 = Posting.objects.create(
+                                id              = 3, 
+                                title           = '개발자구해요33', 
+                                job_category    = job3, 
+                                company_detail  = com_de2, 
+                                reward          = 15, 
+                                description     = '오지마', 
+                                create_at       = '2020-08-07', 
+                                end_date        = '2021-04-03', 
+                                work_experience = work2
+                                )
+        p4 = Posting.objects.create(
+                                id              = 4, 
+                                title           = '개발자구해요44', 
+                                job_category    = job3, 
+                                company_detail  = com_de3, 
+                                reward          = 30, 
+                                description     = '정신차리는 회사', 
+                                create_at       = '2020-01-01', 
+                                end_date        = '2021-04-03', 
+                                work_experience = work3
+                                )
+
+        Like.objects.create(
+                        user_id = 1, 
+                        posting = p1
+                        )
+        Like.objects.create(
+                        user_id = 2, 
+                        posting = p1
+                        )
+        Like.objects.create(
+                        user_id = 1, 
+                        posting = p2
+                        )
+        Like.objects.create(
+                        user_id = 2, 
+                        posting = p2
+                        )
+        Like.objects.create(
+                        user_id = 3, 
+                        posting = p2
+                        )
+        Like.objects.create(
+                        user_id = 1, 
+                        posting = p3
+                        )
+        Like.objects.create(
+                        user_id = 1, 
+                        posting = p4
+                        )
+        Like.objects.create(
+                        user_id = 2, 
+                        posting = p4
+                        )
+        Like.objects.create(
+                        user_id = 3, 
+                        posting = p4
+                        )
+        Like.objects.create(
+                        user_id = 4, 
+                        posting = p4
+                        )
+
+    def tearDown(self):
+        User.objects.all().delete()
+        WorkExperience.objects.all().delete()
+        Posting.objects.all().delete(),
+        Occupation.objects.all().delete(),
+        Company.objects.all().delete(),
+        CompanyImage.objects.all().delete(),
+        CompanyDetail.objects.all().delete(),
+        State.objects.all().delete(),
+        County.objects.all().delete(),
+        Like.objects.all().delete(),
+        JobCategory.objects.all().delete()
+
+    def test_posting_get_success(self):
+        user                = User.objects.get(name='나나')
+        token               = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        response            = client.get('/main', **{'HTTP_Authorization' : token})
+        
+        LIST_LIMIT_NUMBER   = 4
+        set_postings1       = Posting.objects.annotate(like_num=Count('like')).all()
+        
+        like_postings       = set_postings1.order_by('-like_num')[:LIST_LIMIT_NUMBER]
+        self.assertEqual(response.json()['likePosting'], [{
+            "postingId" : 4,
+            "imageUrl"  : 'http://image',
+            "job"       : '개발자구해요44',
+            "name"      : '채현테크',
+            "city"      : '서울',
+            "state"     : '강북구',
+            "price"     : 30,
+            "likeNum"   : 4
+            },
+            {
+            "postingId" : 2,
+            "imageUrl"  : None,
+            "job"       : '개발자구해요22',
+            "name"      : '윜코드',
+            "city"      : '서울',
+            "state"     : '강남구',
+            "price"     : 20,
+            "likeNum"   : 3
+            },
+            {
+            "postingId" : 1,
+            "imageUrl"  : None,
+            "job"       : '개발자구해요11',
+            "name"      : '윜코드',
+            "city"      : '서울',
+            "state"     : '강남구',
+            "price"     : 10,
+            "likeNum"   : 2
+            },
+            {
+            "postingId" : 3,
+            "imageUrl"  : None,
+            "job"       : '개발자구해요33',
+            "name"      : '불리자두',
+            "city"      : '서울',
+            "state"     : '강동구',
+            "price"     : 15,
+            "likeNum"   : 1
+            }])
+        
+        self.assertEqual(response.json()['new'], [
+            {
+            "postingId" : 4,
+            "imageUrl"  : 'http://image',
+            "name"      : '채현테크',
+            "job"       : '개발자',
+            },
+            {
+            "postingId" : 3,
+            "imageUrl"  : None,
+            "name"      : '불리자두',
+            "job"       : '개발자',
+            },
+            {
+            "postingId" : 2,
+            "imageUrl"  : None,
+            "name"      : '윜코드',
+            "job"       : '개발자',
+            },
+            {
+            "postingId" : 1,
+            "imageUrl"  : None,
+            "name"      : '윜코드',
+            "job"       : '개발자',
+            }
+            ])
+        
+        self.assertEqual(response.json()['thisWeek'], [
+            {
+            "imageUrl"  : 'http://image',
+            "postingId" : 4,
+            "job"       : '개발자구해요44',
+            "name"      : '채현테크',
+            "city"      : '서울',
+            "state"     : '강북구',
+            "price"     : 30,
+            },
+            {
+            "imageUrl"  : None,
+            "postingId" : 3,
+            "job"       : '개발자구해요33',
+            "name"      : '불리자두',
+            "city"      : '서울',
+            "state"     : '강동구',
+            "price"     : 15,
+            },
+            {
+            "imageUrl"  : None,
+            "postingId" : 2,
+            "job"       : '개발자구해요22',
+            "name"      : '윜코드',
+            "city"      : '서울',
+            "state"     : '강남구',
+            "price"     : 20,
+            },
+            {
+            "imageUrl"  : None,
+            "postingId" : 1,
+            "job"       : '개발자구해요11',
+            "name"      : '윜코드',
+            "city"      : '서울',
+            "state"     : '강남구',
+            "price"     : 10,
+            }
+            ])
+        
+        self.assertEqual(response.status_code, 200)
+
+    def test_posting_get_invalid_token(self):
+        headers  = {'HTTP_AUTHORIZATION': 'asdf'}
+        response = client.get('/main', **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'INVALID_TOKEN')
+    
+    def test_posting_get_none_token(self):
+        response = client.get('/main')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'NEED_LOGIN')
+
+    def test_posting_get_does_not_exists(self):
+        token       = jwt.encode({'id':10}, SECRET_KEY, algorithm=ALGORITHM)
+        headers     = {'HTTP_AUTHORIZATION': token}
+        response    = client.get('/main', **headers)
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['message'], 'DOES_NOT_EXISTS')
