@@ -140,3 +140,37 @@ class RelatedPostingView(View):
 
         except Posting.DoesNotExist:
             return JsonResponse({"message": "BAD_REQUEST"}, status=404)
+
+class PostingLikeView(View):
+    @login_decorator
+    def post(self, request, posting_id):
+        try:
+            user    = request.user
+            posting = Posting.objects.get(id=posting_id)
+            
+            if Like.objects.filter(user=user, posting=posting).exists():
+                Like.objects.filter(user=user, posting=posting).delete()
+                return JsonResponse({"message": "WASTED"}, status=200)
+            
+            posting.posting_like.add(user)
+            return JsonResponse({"message": "SUCCESS"}, status=200)
+        
+        except Posting.DoesNotExist:
+            return JsonResponse({'message': 'BAD_REQUEST'}, status=404)
+
+class PostingBookmarkView(View):
+    @login_decorator
+    def post(self, request, posting_id):
+        try:
+            user    = request.user
+            posting = Posting.objects.get(id=posting_id)
+            
+            if BookMark.objects.filter(user=user, posting=posting).exists():
+                BookMark.objects.filter(user=user, posting=posting).delete()
+                return JsonResponse({"message": "WASTED"}, status=200)
+            
+            posting.posting_mark.add(user)
+            return JsonResponse({"message": "SUCCESS"}, status=200)
+        
+        except Posting.DoesNotExist:
+            return JsonResponse({'message': 'BAD_REQUEST'}, status=404)
