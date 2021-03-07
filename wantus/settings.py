@@ -1,4 +1,4 @@
-from my_settings import SECRET_KEY, DATABASES
+from my_settings import SECRET_KEY, DATABASES, S3KEY, S3SECRETKEY, BUCKET
 from pathlib     import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,7 +30,9 @@ INSTALLED_APPS = [
     'user',
     'posting',
     'resume',
-    'apply'
+    'apply',
+    'storages',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -134,3 +136,23 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with',
 		#만약 허용해야할 추가적인 헤더키가 있다면?(사용자정의 키) 여기에 추가하면 됩니다.
 )
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+AWS_S3_SECURE_URLS = False       # use http instead of https
+AWS_QUERYSTRING_AUTH = False     # don't add complex authentication-related query parameters for requests
+
+AWS_S3_ACCESS_KEY_ID     = S3KEY
+AWS_S3_SECRET_ACCESS_KEY = S3SECRETKEY
+AWS_STORAGE_BUCKET_NAME  = BUCKET
+AWS_REGION               = "ap-northeast-2"
+
+AWS_S3_CUSTOM_DOMAIN = "%s.s3.%s.amazonaws.com" % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
+AWS_S3_OBJECT_PARAMETERS = {
+        "CacheControl": "max-age=86400",
+        }
+
+AWS_PUBLIC_MEDIA_LOCATION = "media/public"
+DEFAULT_FILE_STORAGE = "config.asset_storage.MediaStorage"
+
+AWS_PRIVATE_MEDIA_LOCATION = 'media/private'
+PRIVATE_FILE_STORAGE = 'mysite.storage_backends.PrivateMediaStorage'
