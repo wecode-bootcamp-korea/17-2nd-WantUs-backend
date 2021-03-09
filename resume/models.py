@@ -16,9 +16,11 @@ class Resume(models.Model):
         db_table = 'resumes'
 
 class ResumeFile(models.Model):
-    user     = models.ForeignKey('user.User', on_delete=models.CASCADE)
-    title    = models.CharField(max_length=50)
-    file_url = models.URLField(max_length=2000)
+    user      = models.ForeignKey('user.User', on_delete=models.CASCADE)
+    title     = models.CharField(max_length=50)
+    file_url  = models.URLField(max_length=2000)
+    create_at = models.DateField(auto_now_add=True)
+    update_at = models.DateField(auto_now=True)
 
     class Meta:
         db_table = 'resume_files'
