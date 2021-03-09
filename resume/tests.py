@@ -184,7 +184,7 @@ class ResumePartialTest(TestCase):
     
     def test_resume_partial_get_invalide_user(self):
         user     = User.objects.get(id=1)
-        token    = jwt.encode({'id': 1}, SECRET_KEY, algorithm=ALGORITHM)
+        token    = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
         headers  = {'HTTP_AUTHORIZATION' : token}
         resume   = Resume.objects.get(title='test이력서')
         response = client.get('/resume/2', content_type='application/json', **headers)

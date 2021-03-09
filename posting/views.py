@@ -106,26 +106,26 @@ class MainView(View):
             "state"     : posting.company_detail.county.name,
             "price"     : int(posting.reward),
             "likeNum"   : posting.like_set.filter(posting=posting).count()
-            } for posting in postings]
+            } for posting in postings.prefetch_related('company_detail__company__companyimage_set')]
 
         postings = set_postings.order_by('-create_at')[:LIST_LIMIT_NUMBER]
 
         new_company_list = [{
             "postingId" : posting.id,
-            "imageUrl"  : posting.company_detail.company.companyimage_set.first().image_url if posting.company_detail.company.companyimage_set.exists() else None,
+            "imageUrl"  : posting.company_detail.company.companyimage_set.all()[0].image_url if posting.company_detail.company.companyimage_set.exists() else None,
             "name"      : posting.company_detail.company.name,
             "job"       : posting.job_category.occupation.name,
-            }for posting in postings]
+            }for posting in postings.prefetch_related('company_detail__company__companyimage_set')]
 
         new_posting_list = [{
-            "imageUrl"  : posting.company_detail.company.companyimage_set.first().image_url if posting.company_detail.company.companyimage_set.exists() else None,
+            "imageUrl"  : posting.company_detail.company.companyimage_set.all()[0].image_url if posting.company_detail.company.companyimage_set.exists() else None,
             "postingId" : posting.id,
             "job"       : posting.title,
             "name"      : posting.company_detail.company.name,
             "city"      : posting.company_detail.state.name,
             "state"     : posting.company_detail.county.name,
             "price"     : int(posting.reward),
-            } for posting in postings]
+            } for posting in postings.prefetch_related('company_detail__company__companyimage_set')]
 
         return JsonResponse({"likePosting" : like_posting_list, "new" : new_company_list, "thisWeek" : new_posting_list}, status=200)
 
