@@ -167,7 +167,7 @@ class PostingDetailViewTest(TestCase):
 
     def test_postingdetail_liked_get_success(self):
         client   = Client()
-        token    = jwt.encode({'user_id': User.objects.get(id=1).id}, SECRET_KEY, algorithm=ALGORITHM)
+        token    = jwt.encode({'id': User.objects.get(id=1).id}, SECRET_KEY, algorithm=ALGORITHM)
         response = client.get('/posting/1', **{'HTTP_Authorization': token})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': [
@@ -198,7 +198,7 @@ class PostingDetailViewTest(TestCase):
     
     def test_postingdetail_nonliked_get_success(self):
         client   = Client()
-        token    = jwt.encode({'user_id': User.objects.get(id=1).id}, SECRET_KEY, algorithm=ALGORITHM)
+        token    = jwt.encode({'id': User.objects.get(id=1).id}, SECRET_KEY, algorithm=ALGORITHM)
         response = client.get('/posting/2', **{'HTTP_Authorization': token})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': [
@@ -618,3 +618,437 @@ class MainViewTest(TestCase):
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['message'], 'DOES_NOT_EXISTS')
+
+class DetailPaginationViewTest(TestCase):
+    maxDiff=None
+    def setUp(self):
+        User.objects.create(
+                            id    = 1, 
+                            name  = 'dadewd', 
+                            email = 'cat@cat'
+                            )
+        WorkExperience.objects.create(
+                                      id   = 1, 
+                                      name = 'aaaa'
+                                      )
+        Occupation.objects.create(
+                                  id   = 1, 
+                                  name = 'aaa'
+                                  )
+        JobCategory.objects.create(
+                                   id         = 1, 
+                                   occupation = Occupation.objects.get(id=1), 
+                                   name       = 'bbb'
+                                   )
+        JobCategory.objects.create(
+                                   id         = 2, 
+                                   occupation = Occupation.objects.get(id=1), 
+                                   name       = 'bbb'
+                                   )
+        State.objects.create(
+                            id   = 1, 
+                            name = 'aaa'
+                            )
+        County.objects.create(
+                              id   = 1, 
+                              name = 'aaaa'
+                              )
+        Company.objects.create(
+                              id          = 1, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        Company.objects.create(
+                              id          = 2, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        Company.objects.create(
+                              id          = 3, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        Company.objects.create(
+                              id          = 4, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        Company.objects.create(
+                              id          = 5, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        Company.objects.create(
+                              id          = 6, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        Company.objects.create(
+                              id          = 7, 
+                              name        = 'bbb', 
+                              icon        = 'asesd', 
+                              description = 'dases'
+                              )
+        CompanyImage.objects.create(
+                                    id        = 1,
+                                    company   = Company.objects.get(id=1), 
+                                    image_url = 'asdefafasd'
+                                    )
+        CompanyImage.objects.create(
+                                    id        = 2,
+                                    company   = Company.objects.get(id=2), 
+                                    image_url = 'asdefafasd'
+                                    )
+        CompanyImage.objects.create(
+                                    id        = 3,
+                                    company   = Company.objects.get(id=3), 
+                                    image_url = 'asdefafasd'
+                                    )
+        CompanyImage.objects.create(
+                                    id        = 4,
+                                    company   = Company.objects.get(id=4), 
+                                    image_url = 'asdefafasd'
+                                    )
+        CompanyImage.objects.create(
+                                    id        = 5,
+                                    company   = Company.objects.get(id=5), 
+                                    image_url = 'asdefafasd'
+                                    )
+        CompanyImage.objects.create(
+                                    id=6,
+                                    company=Company.objects.get(id=6), 
+                                    image_url='asdefafasd'
+                                    )
+        CompanyImage.objects.create(
+                                    id        = 7,
+                                    company   = Company.objects.get(id=7), 
+                                    image_url = 'asdefafasd'
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 1,
+                                    company   = Company.objects.get(id=1), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 2,
+                                    company   = Company.objects.get(id=2), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 3,
+                                    company   = Company.objects.get(id=3), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 4,
+                                    company   = Company.objects.get(id=4), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 5,
+                                    company   = Company.objects.get(id=5), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 6,
+                                    company   = Company.objects.get(id=6), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        CompanyDetail.objects.create(
+                                    id        = 7,
+                                    company   = Company.objects.get(id=7), 
+                                    name      = 'ijonkm', 
+                                    address   = 'asdqwndinm', 
+                                    latitude  = 34, 
+                                    longitude = 56, 
+                                    state     = State.objects.get(id=1), 
+                                    county    = County.objects.get(id=1)
+                                    )
+        Posting.objects.create(
+                              id              = 1, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=1), 
+                              company_detail  = CompanyDetail.objects.get(id=1), 
+                              work_experience = WorkExperience.objects.get(id=1),
+                              reward          = 100, 
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03'
+                              )
+        Posting.objects.create(
+                              id              = 2, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=1), 
+                              company_detail  = CompanyDetail.objects.get(id=2), 
+                              work_experience = WorkExperience.objects.get(id=1),
+                              reward          = 100, 
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03'
+                              )
+        Posting.objects.create(
+                              id              = 3, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=1), 
+                              company_detail  = CompanyDetail.objects.get(id=3), 
+                              work_experience = WorkExperience.objects.get(id=1),
+                              reward          = 100, 
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03'
+                              )
+        Posting.objects.create(
+                              id              = 4, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=1), 
+                              company_detail  = CompanyDetail.objects.get(id=4), 
+                              work_experience = WorkExperience.objects.get(id=1),
+                              reward          = 100, 
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03'
+                              )
+        Posting.objects.create(
+                              id              = 5, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=1), 
+                              company_detail  = CompanyDetail.objects.get(id=5), 
+                              work_experience = WorkExperience.objects.get(id=1),
+                              reward          = 100, 
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03'
+                              )
+        Posting.objects.create(
+                              id              = 6, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=1), 
+                              company_detail  = CompanyDetail.objects.get(id=6), 
+                              reward          = 100, 
+                              work_experience = WorkExperience.objects.get(id=1),
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03'
+                              )
+        Posting.objects.create(
+                              id              = 7, 
+                              title           = 'adnowpmpqwm', 
+                              job_category    = JobCategory.objects.get(id=2), 
+                              company_detail  = CompanyDetail.objects.get(id=7), 
+                              reward          = 100, 
+                              description     = 'asdeegmin', 
+                              end_date        = '2021-04-03',
+                              work_experience = WorkExperience.objects.get(id=1),
+                              )
+        
+        Like.objects.create(user=User.objects.get(id=1), posting=Posting.objects.get(id=1))
+        Like.objects.create(user=User.objects.get(id=1), posting=Posting.objects.get(id=3))
+        Like.objects.create(user=User.objects.get(id=1), posting=Posting.objects.get(id=5))
+
+    def tearDown(self):
+        Like.objects.all().delete()
+        User.objects.all().delete()
+        Occupation.objects.all().delete()
+        WorkExperience.objects.all().delete()
+        JobCategory.objects.all().delete()
+        State.objects.all().delete()
+        County.objects.all().delete()
+        Company.objects.all().delete()
+        CompanyImage.objects.all().delete()
+        CompanyDetail.objects.all().delete()
+        Posting.objects.all().delete()
+
+
+    def test_user_pagination_page_1_success(self):
+        client   = Client()
+        token    = jwt.encode({'id': User.objects.get(id=1).id}, SECRET_KEY, algorithm=ALGORITHM)
+        response = client.get('/posting/1/related-posting?page=1', **{'HTTP_Authorization': token})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': 
+            [
+                {
+                    'id'      : 2,
+                    'image'   : 'asdefafasd',
+                    'like'    : 0,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                {
+                    'id'      : 3,
+                    'image'   : 'asdefafasd',
+                    'like'    : 1,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': True,
+                    },
+                {
+                    'id'      : 4,
+                    'image'   : 'asdefafasd',
+                    'like'    : 0,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                {
+                    'id'      : 5,
+                    'image'   : 'asdefafasd',
+                    'like'    : 1,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': True,
+                    },
+                ]
+            }
+            )
+
+    def test_nonuser_pagination_page_1_success(self):
+        client   = Client()
+        response = client.get('/posting/1/related-posting?page=1')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': 
+            [
+                {
+                    'id'      : 2,
+                    'image'   : 'asdefafasd',
+                    'like'    : 0,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                {
+                    'id'      : 3,
+                    'image'   : 'asdefafasd',
+                    'like'    : 1,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                {
+                    'id'      : 4,
+                    'image'   : 'asdefafasd',
+                    'like'    : 0,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                {
+                    'id'      : 5,
+                    'image'   : 'asdefafasd',
+                    'like'    : 1,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                ]
+            }
+            )
+
+    def test_user_pagination_page_2_success(self):
+        client   = Client()
+        token    = jwt.encode({'id': User.objects.get(id=1).id}, SECRET_KEY, algorithm=ALGORITHM)
+        response = client.get('/posting/1/related-posting?page=2', **{'HTTP_Authorization': token})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': 
+            [
+                {
+                    'id'      : 6,
+                    'image'   : 'asdefafasd',
+                    'like'    : 0,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                ]
+            }
+            )
+    
+    def test_nonuser_pagination_page_2_success(self):
+        client   = Client()
+        response = client.get('/posting/1/related-posting?page=2')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': 
+            [
+                {
+                    'id'      : 6,
+                    'image'   : 'asdefafasd',
+                    'like'    : 0,
+                    'title'   : 'adnowpmpqwm',
+                    'company' : 'bbb',
+                    'city'    : 'aaa',
+                    'nation'  : 'aaaa', 
+                    'bonus'   : 100,
+                    'userLike': False,
+                    },
+                ]
+            }
+            )
+
+    def test_pagination_end(self):
+        client   = Client()
+        response = client.get('/posting/1/related-posting?page=3')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(), {"message": "NO_MORE_POSTING"})
+
+    def test_pagination_exception(self):
+        client   = Client()
+        response = client.get('/posting/100/related-posting?page=10')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(), {"message": "BAD_REQUEST"})

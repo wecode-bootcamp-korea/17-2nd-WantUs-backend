@@ -6,9 +6,9 @@ from django.http            import JsonResponse
 from django.views           import View
 from django.db.models       import Count
 
-from user.models    import User
-from utils          import login_decorator, non_user_accept_decorator
-from posting.models import (
+from user.models            import User
+from utils                  import login_decorator, non_user_accept_decorator
+from posting.models         import (
         Posting,
         Occupation,
         Company,
@@ -107,3 +107,36 @@ class MainView(View):
             } for posting in postings]
 
         return JsonResponse({"likePosting" : like_posting_list, "new" : new_company_list, "thisWeek" : new_posting_list}, status=200)
+
+class RelatedPostingView(View):
+    @non_user_accept_decorator
+    def get(self, request, posting_id):
+        PER_PAGE = 4
+        try:
+            user            = request.user
+            posting         = Posting.objects.get(id=posting_id)
+            posting_related = Posting.objects.filter(job_category=posting.job_category).exclude(id=posting_id).order_by('id')
+            limit_page      = math.ceil(posting_related.count()/PER_PAGE)
+            page            = request.GET['page']
+            paginator       = Paginator(posting_related, PER_PAGE)
+
+            if int(page) > limit_page:
+                return JsonResponse({"message": "NO_MORE_POSTING"}, status=404)
+            
+            posting_related = paginator.get_page(page)
+            posting_list    = [
+                        {
+                        'id'     : posting_related.id,
+                        'image'  : posting_related.company_detail.company.companyimage_set.first().image_url,
+                        'like'   : posting_related.like_set.count(),
+                        'title'  : posting_related.title, 
+                        'company': posting_related.company_detail.company.name,
+                        'city'   : posting_related.company_detail.state.name,
+                        'nation' : posting_related.company_detail.county.name,
+                        'bonus'  : int(posting_related.reward),
+                        'userLike' : True if Like.objects.filter(user=user, posting=posting_related).exists() else False,
+                        } for posting_related in posting_related]
+            return JsonResponse({"message": "SUCCESS", "data": posting_list}, status=200)
+
+        except Posting.DoesNotExist:
+            return JsonResponse({"message": "BAD_REQUEST"}, status=404)
