@@ -9,7 +9,7 @@ from django.test        import TestCase, Client
 from unittest.mock      import patch, MagicMock
 from django.http        import JsonResponse
 
-from resume.models  import (
+from resume.models      import (
         ResumeFile,
         Resume,
         ResumeStatus,
@@ -17,8 +17,8 @@ from resume.models  import (
         Language,
         Career
         )
-from my_settings       import ALGORITHM, SECRET_KEY, S3KEY, S3SECRETKEY
-from user.models       import User
+from my_settings        import ALGORITHM, SECRET_KEY, S3KEY, S3SECRETKEY
+from user.models        import User
 
 client   = Client()
 
@@ -34,44 +34,44 @@ class ResumeFileUploadViewTest(TestCase):
 
     @patch('resume.views.boto3')
     def test_post_success(self, mock_s3_client):
-        file = mock.MagicMock(spec=File, name='file.pdf')
+        file      = mock.MagicMock(spec=File, name='file.pdf')
         file.name = 'file.pdf'
         class MockedResponse:
             def json(self):
                 return None
         mock_s3_client.upload_fileobj = MagicMock(return_value=MockedResponse())
-        user   = User.objects.get(id=1)
-        token  = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
-        client = Client()
-        data = {'resume': file}
-        response = client.post('/resume/upload', data, **{'HTTP_Authorization': token})
+        user                          = User.objects.get(id=1)
+        token                         = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        client                        = Client()
+        data                          = {'resume': file}
+        response                      = client.post('/resume/upload', data, **{'HTTP_Authorization': token})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'message': 'SUCCESS', 'data': ResumeFile.objects.get(user=user).file_url})
-    
+
     @patch('resume.views.boto3')
     def test_post_unallowedfile(self, mock_s3_client):
-        file = mock.MagicMock(spec=File, name='file.txt')
+        file      = mock.MagicMock(spec=File, name='file.txt')
         file.name = 'file.txt'
         class MockedResponse:
             def json(self):
                 return None
         mock_s3_client.upload_fileobj = MagicMock(return_value=MockedResponse())
-        user   = User.objects.get(id=1)
-        token  = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
-        client = Client()
-        data = {'resume': file}
-        response = client.post('/resume/upload', data, **{'HTTP_Authorization': token})
+        user                          = User.objects.get(id=1)
+        token                         = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        client                        = Client()
+        data                          = {'resume': file}
+        response                      = client.post('/resume/upload', data, **{'HTTP_Authorization': token})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {'message': 'PLEASE_UPLOAD_PDF'})
 
+
     def test_post_nofile(self):
-        user   = User.objects.get(id=1)
-        token  = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
-        client = Client()
+        user     = User.objects.get(id=1)
+        token    = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        client   = Client()
         response = client.post('/resume/upload', **{'HTTP_Authorization': token})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {'message': 'FILE_DOES_NOT_EXIST'})
-
 
 class ResumePartialTest(TestCase):
     def setUp(self):
@@ -184,7 +184,7 @@ class ResumePartialTest(TestCase):
     
     def test_resume_partial_get_invalide_user(self):
         user     = User.objects.get(id=1)
-        token    = jwt.encode({'id': 2}, SECRET_KEY, algorithm=ALGORITHM)
+        token    = jwt.encode({'id': 1}, SECRET_KEY, algorithm=ALGORITHM)
         headers  = {'HTTP_AUTHORIZATION' : token}
         resume   = Resume.objects.get(title='test이력서')
         response = client.get('/resume/2', content_type='application/json', **headers)
@@ -192,16 +192,6 @@ class ResumePartialTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['message'], 'INVALID_USER')
         
-    def test_resume_partial_get_invalide_user(self):
-        user     = User.objects.get(id=1)
-        token    = jwt.encode({'id': 10}, SECRET_KEY, algorithm=ALGORITHM)
-        headers  = {'HTTP_AUTHORIZATION' : token}
-        resume   = Resume.objects.get(title='test이력서')
-        response = client.get('/resume/2', content_type='application/json', **headers)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['message'], 'DOES_NOT_EXIST')
-    
     def test_resume_partial_get_invalide_resume(self):
         user     = User.objects.get(id=1)
         token    = jwt.encode({'id':user.id}, SECRET_KEY, algorithm=ALGORITHM)
@@ -310,17 +300,17 @@ class ResumeTest(TestCase):
                 'matchUp'   : False
                 }, 
             {
-                'id'        : 4, 
-                'name'      : '보라돌이의 이력서2', 
-                'date'      : '2021-03-11', 
-                'status'    : '작성중', 
-                'matchUp'   : False
-                }, 
-            {
                 'id'        : 2, 
                 'name'      : '보라돌이의 업로드 이력서1', 
                 'date'      : '2021-03-11', 
                 'status'    : '첨부파일', 
+                'matchUp'   : False
+                },
+            {
+                'id'        : 4, 
+                'name'      : '보라돌이의 이력서2', 
+                'date'      : '2021-03-11', 
+                'status'    : '작성중', 
                 'matchUp'   : False
                 }])
         self.assertEqual(response.status_code, 200)
@@ -333,3 +323,55 @@ class ResumeTest(TestCase):
         
         self.assertEqual(response.json()['result'], 5)
         self.assertEqual(response.status_code, 201)
+
+class ResumeFileDeleteViewTest(TestCase):
+    def setUp(self):
+        User.objects.create(id=1, name='gildong', email='cat@cat')
+        ResumeStatus.objects.create(id=3, status_code='ddd')
+        ResumeFile.objects.create(id=1, user=User.objects.get(id=1), title='aaa', file_url='aaaa', uuidcode='ased', complete_status=ResumeStatus.objects.get(id=3))
+
+    def tearDown(self):
+        ResumeFile.objects.all().delete()
+        ResumeStatus.objects.all().delete()
+        User.objects.filter(id=1).delete()
+    
+    @patch('resume.views.urllib.request')
+    @patch('resume.views.boto3')
+    def test_delete(self, mock_s3_client, mock_urllib):
+        class MockedResponse:
+            def json(self):
+                return None
+
+        user      = User.objects.get(id=1)
+        token     = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        client    = Client()
+        resume_id = ResumeFile.objects.get(user=user).id
+
+        mock_urllib.request           = MagicMock(return_value=MockedResponse())
+        mock_s3_client.delete_objects = MagicMock(return_value=MockedResponse())
+
+        response  = client.delete(f"/resume/upload/{resume_id}", **{'HTTP_Authorization': token})
+        
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'message': 'SUCCESS'})
+    
+    @patch('resume.views.boto3')
+    def test_delete_fail(self, mock_s3_client):
+
+        class MockedResponse:
+            def json(self):
+                return None
+
+        user                          = User.objects.get(id=1)
+        token                         = jwt.encode({'id': user.id}, SECRET_KEY, algorithm=ALGORITHM)
+        client                        = Client()
+        resume_id                     = ResumeFile.objects.get(user=user).id
+        
+        ResumeFile.objects.filter(user=user).update(file_url='https://wantusfile.s3.ap-northeast-2.amazonaws.com/aaa')
+        
+        mock_s3_client.delete_objects = MagicMock(return_value=MockedResponse())
+        
+        response                      = client.delete(f"/resume/upload/{resume_id}", **{'HTTP_Authorization': token})
+        
+        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.json(), {'message': 'INVALID_URL'})

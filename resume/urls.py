@@ -7,7 +7,8 @@ from resume.views import (
         )
 
 urlpatterns = [
-        path('/upload', ResumeFilewUploadView.as_view()),
-        path('', ResumeView.as_view()),
-        path('/<int:resume_id>', ResumePartialView.as_view())
+    path('/upload', ResumeFilewUploadView.as_view()),
+    path('', ResumeView.as_view()),
+    path('/<int:resume_id>', ResumePartialView.as_view()),
+    path('/upload/<int:resume_id>', ResumeFilewUploadView.as_view()),
         ]
