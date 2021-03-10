@@ -1,6 +1,7 @@
 import json
 import uuid
 import boto3
+import urllib.request
 
 from django.http        import JsonResponse
 from django.views       import View
@@ -22,7 +23,7 @@ class ResumeFilewUploadView(View):
     @login_decorator
     def post(self, request):
         user = request.user
-        
+
         if request.FILES.__len__() == 0:
             return JsonResponse({"message": "FILE_DOES_NOT_EXIST"}, status=400)
 
@@ -45,10 +46,32 @@ class ResumeFilewUploadView(View):
                     "ContentType": file.content_type,
                     }
                 )
-
         file_url = f"https://wantusfile.s3.ap-northeast-2.amazonaws.com/{url_generator}"
         resume   = ResumeFile.objects.create(user=user, title=file.name, file_url=file_url, uuidcode=url_generator)
         return JsonResponse({'message': 'SUCCESS', 'data': file_url}, status=200)
+    
+    @login_decorator
+    def delete(self, request, resume_id):
+        try:
+            resume    = ResumeFile.objects.get(id=resume_id)
+            key       = resume.uuidcode
+            file_url  = resume.file_url
+            urllib.request.urlopen(file_url).getcode()
+            s3_client = boto3.client(
+                                    's3',
+                                    aws_access_key_id     = S3KEY,
+                                    aws_secret_access_key = S3SECRETKEY
+            )
+            s3_client.delete_object(Bucket='wantusfile', Key=key)
+            resume.delete()
+
+            return JsonResponse({'message': 'SUCCESS'}, status=200)
+        
+        except ResumeFile.DoesNotExist:
+            return JsonResponse({'message': 'BAD_REQUEST'}, status=404)
+        
+        except urllib.error.URLError:
+            return JsonResponse({'message': 'INVALID_URL'}, status=404)
 
 class ResumePartialView(View):
     @login_decorator
