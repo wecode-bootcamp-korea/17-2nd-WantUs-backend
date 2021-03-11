@@ -21,6 +21,7 @@ from posting.models import (
     JobCategory
 )
 from user.models            import User
+from resume.models          import Resume, ResumeFile, ResumeStatus
 from utils                  import login_decorator, non_user_accept_decorator
 from posting.models         import (
         Posting,
@@ -62,16 +63,19 @@ class PostingDetailView(View):
                     'logoSrc'      : posting.company_detail.company.icon,
                     'category'     : posting.job_category.occupation.name,
                         }
+
             if user is None:
-                contents['user']         = user
+                contents['user']         = None
                 contents['userLike']     = False
                 contents['userBookmark'] = False
                 result.append(contents)
                 return JsonResponse({"message": "SUCCESS", "data": result}, status=200)
-
+            
             contents['user']         = user.name
             contents['userLike']     = True if Like.objects.filter(user=user, posting=posting).exists() else False
             contents['userBookmark'] = True if BookMark.objects.filter(user=user, posting=posting).exists() else False
+            contents['userEmail']    = user.email
+            contents['userPhone']    = user.phone_number
             result.append(contents)
             return JsonResponse({"message": "SUCCESS", "data": result}, status=200)
             
