@@ -1,12 +1,14 @@
 import jwt
 import bcrypt
 
+from datetime           import date
 from django.test        import TestCase, Client
 from django.db.models   import Count
 
 from unittest.mock  import patch, MagicMock
 from my_settings    import SECRET_KEY, ALGORITHM
 from user.models    import User, WorkExperience
+from resume.models  import Resume, ResumeFile, ResumeStatus
 from posting.models import (
         Posting,
         Occupation,
@@ -40,6 +42,36 @@ class PostingDetailViewTest(TestCase):
                                       id   = 1, 
                                       name = 'www'
                                       )
+        ResumeStatus.objects.create(id          = 1,
+                                    status_code = '작성중'
+                                    )
+        ResumeStatus.objects.create(id          = 2,
+                                    status_code = '작성완료'
+                                    )
+        ResumeStatus.objects.create(id          = 3,
+                                    status_code = '첨부파일'
+                                    )
+        ResumeFile.objects.create(id=1,
+                                  user=User.objects.get(id=1),
+                                  file_url='adsde',
+                                  title='bbb',
+                                  uuidcode='asdee',
+                                  complete_status=ResumeStatus.objects.get(id=3)
+                                  )
+        Resume.objects.create(id=1,
+                              user=User.objects.get(id=1),
+                              is_default=False,
+                              title='aaaa',
+                              complete_status=ResumeStatus.objects.get(id=1),
+                              introduce='bbb'
+                              )
+        Resume.objects.create(id=2,
+                              user=User.objects.get(id=1),
+                              is_default=True,
+                              title='aaaa',
+                              complete_status=ResumeStatus.objects.get(id=2),
+                              introduce='bbb'
+                              )
         Tag.objects.create(
                           id   = 1, 
                           name = 'gg'
@@ -150,6 +182,9 @@ class PostingDetailViewTest(TestCase):
     def tearDown(self):
         BookMark.objects.all().delete()
         Like.objects.all().delete()
+        Resume.objects.all().delete()
+        ResumeFile.objects.all().delete()
+        ResumeStatus.objects.all().delete()
         User.objects.all().delete()
         CompanyTag.objects.all().delete()
         Occupation.objects.all().delete()
@@ -189,10 +224,35 @@ class PostingDetailViewTest(TestCase):
                 'logoSrc'      : 'asesd',
                 'category'     : 'aaa',
                 'user'         : 'gildong',
+                'userBookmark' : True,
                 'userLike'     : True,
-                'userBookmark' : True
-                        }
-            ]
+                'userPhone'    : None,
+                'userEmail'    : 'cat@cat',
+                'resume'       : [
+                                    {
+                                     'id'              : 1,
+                                     'title'           : 'aaaa',
+                                     'date'            : date.today().isoformat(),
+                                     'complete_status' : '작성중',
+                                     'matchUp'         : False,
+                                     },
+                                    {
+                                     'id'              : 2,
+                                     'title'           : 'aaaa',
+                                     'date'            : date.today().isoformat(),
+                                     'complete_status' : '작성완료',
+                                     'matchUp'         : True,
+                                     },
+                                    {
+                                     'id'              : 1,
+                                     'title'           : 'bbb',
+                                     'date'            : date.today().isoformat(),
+                                     'complete_status' : '첨부파일',
+                                     'matchUp'         : False,
+                                     },
+                                    ],
+                }
+                ]
             }
             )
     
@@ -209,8 +269,8 @@ class PostingDetailViewTest(TestCase):
                 'city'         : 'aaa',
                 'district'     : 'aaaa',
                 'detailAddress': 'asdqwndinm',
-                'latitude'     : 34,
-                'longitude'    : 56,
+                'latitude'     : 34.0,
+                'longitude'    : 56.0,
                 'tags'         : [],
                 'description'  : 'asdeegmin',
                 'image'        : 'asdefafasd',
@@ -222,8 +282,33 @@ class PostingDetailViewTest(TestCase):
                 'user'         : 'gildong',
                 'userLike'     : False,
                 'userBookmark' : False,
-                        }
-            ]
+                'userPhone'    : None,
+                'userEmail'    : 'cat@cat',
+                'resume'       : [
+                                    {
+                                     'id'              : 1,
+                                     'title'           : 'aaaa',
+                                     'date'            : date.today().isoformat(),
+                                     'complete_status' : '작성중',
+                                     'matchUp'         : False,
+                                     },
+                                    {
+                                     'id'              : 2,
+                                     'title'           : 'aaaa',
+                                     'date'            : date.today().isoformat(),
+                                     'complete_status' : '작성완료',
+                                     'matchUp'         : True,
+                                     },
+                                    {
+                                     'id'              : 1,
+                                     'title'           : 'bbb',
+                                     'date'            : date.today().isoformat(),
+                                     'complete_status' : '첨부파일',
+                                     'matchUp'         : False,
+                                     },
+                                    ],
+                }
+                ]
             }
             )
     
